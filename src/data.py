@@ -194,7 +194,7 @@ class MLMDataset(Dataset):
         max_length: int = 512,
         mask_prob: float = 0.15,
         text_field: str = "full_text",
-        file_pattern: str = "*.jsonl",
+        file_pattern: str = "*.json*",  # Matches .json and .jsonl
         replace_probs: Optional[Dict[str, float]] = None,
         seed: Optional[int] = None,
     ):
