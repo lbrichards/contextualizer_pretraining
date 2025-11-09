@@ -1,0 +1,51 @@
+seed: 42
+device: mps  # Apple Silicon
+dtype: bf16
+
+tokenizer:
+  name_or_path: "Qwen/Qwen2.5-7B"
+
+sequence:
+  max_len: 512
+  pad_to_max: true
+
+mlm:
+  mask_prob: 0.15
+  replace_probs:
+    mask: 0.8
+    random: 0.1
+    keep: 0.1
+
+model:
+  d_model: 3584
+  n_heads: 16
+  n_layers: 2
+  d_ff: 14336
+  dropout: 0.1
+  rope_theta: 10000.0
+
+optim:
+  name: adamw
+  lr_peak: 3e-4
+  betas: [0.9, 0.95]
+  weight_decay: 0.01
+  grad_clip: 1.0
+
+schedule:
+  type: cosine
+  warmup_ratio: 0.05
+
+train:
+  batch_size: 4  # Tested and stable on MPS
+  max_steps: 2000  # ~11 epochs through LIMA data
+  warmup_steps: 100  # 5% warmup
+  log_interval: 50
+  eval_interval: 200
+  save_interval: 500
+  val_split: 0.1
+  use_amp: false  # MPS doesn't support AMP well
+  gradient_checkpointing: true
+
+export:
+  pool: "cls"
+  out_name: "contextualizer_lima_v1"

@@ -511,6 +511,62 @@ class Trainer:
         print(f"Saved final model to {save_path}")
 
 
+def load_config_from_yaml(yaml_path: str) -> TrainingConfig:
+    """
+    Load training config from YAML file.
+
+    Handles nested structure from config files and maps to flat TrainingConfig.
+    """
+    yaml_config = load_config(yaml_path)
+
+    # Extract nested config sections (with defaults)
+    model_cfg = yaml_config.get("model", {})
+    optim_cfg = yaml_config.get("optim", {})
+    schedule_cfg = yaml_config.get("schedule", {})
+    train_cfg = yaml_config.get("train", {})
+    sequence_cfg = yaml_config.get("sequence", {})
+    mlm_cfg = yaml_config.get("mlm", {})
+
+    max_steps = train_cfg.get("max_steps", 10000)
+    warmup_ratio = schedule_cfg.get("warmup_ratio", 0.05)
+
+    # Map to TrainingConfig fields (ensure proper types)
+    config_dict = {
+        # Model
+        "d_model": int(model_cfg.get("d_model", 3584)),
+        "n_heads": int(model_cfg.get("n_heads", 16)),
+        "n_layers": int(model_cfg.get("n_layers", 2)),
+        "d_ff": int(model_cfg.get("d_ff", 14336)),
+        "dropout": float(model_cfg.get("dropout", 0.1)),
+        "rope_theta": float(model_cfg.get("rope_theta", 10000.0)),
+        "max_seq_len": int(sequence_cfg.get("max_len", 512)),
+        # Training
+        "batch_size": int(train_cfg.get("batch_size", 8)),
+        "learning_rate": float(optim_cfg.get("lr_peak", 3e-4)),
+        "weight_decay": float(optim_cfg.get("weight_decay", 0.01)),
+        "betas": tuple(optim_cfg.get("betas", [0.9, 0.95])),
+        "gradient_clip": float(optim_cfg.get("grad_clip", 1.0)),
+        "max_steps": int(max_steps),
+        "warmup_steps": int(max_steps * warmup_ratio),
+        # Data
+        "mask_prob": float(mlm_cfg.get("mask_prob", 0.15)),
+        "val_split": float(train_cfg.get("val_split", 0.1)),
+        # Logging
+        "log_interval": int(train_cfg.get("log_interval", 50)),
+        "eval_interval": int(train_cfg.get("eval_interval", 500)),
+        "save_interval": int(train_cfg.get("save_interval", 1000)),
+        # System
+        "seed": int(yaml_config.get("seed", 42)),
+        "device": str(yaml_config.get("device", "auto")),
+        "dtype": str(yaml_config.get("dtype", "bf16")),
+        "use_amp": bool(train_cfg.get("use_amp", True)),
+        "gradient_checkpointing": bool(train_cfg.get("gradient_checkpointing", False)),
+        "scheduler_type": str(schedule_cfg.get("type", "cosine")),
+    }
+
+    return TrainingConfig(**config_dict)
+
+
 def main():
     """Main entry point for training script."""
     parser = argparse.ArgumentParser(description="Train MLM contextualizer")
@@ -523,8 +579,7 @@ def main():
 
     # Load config from YAML if provided
     if args.config:
-        config_dict = load_config(args.config)
-        config = TrainingConfig(**config_dict)
+        config = load_config_from_yaml(args.config)
     else:
         config = TrainingConfig()
 
