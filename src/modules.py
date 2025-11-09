@@ -335,6 +335,8 @@ class ContextualizerEncoder(nn.Module):
         # Convert attention mask to padding mask (invert logic)
         padding_mask = None
         if attention_mask is not None:
+            # Convert to bool if needed (handles both 0/1 and True/False)
+            attention_mask = attention_mask.bool()
             padding_mask = ~attention_mask  # True = padding
 
         # Pass through transformer layers
